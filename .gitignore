@@ -1,5 +1,6 @@
-./data/*
-./output/*
-./model/*
-./logs/*
-./__pycache__
+/data/*
+/output/*
+/model/*
+/logs/*
+/__pycache__
+/network/__pycache__
