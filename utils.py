@@ -55,7 +55,6 @@ def generate_gaussianmap(center, accumulate_confid_map):
 def generate_vecmap(centerA, centerB, accumulate_vec_map, count):
     centerA = centerA.astype(float)
     centerB = centerB.astype(float)
-
     crop_size = Config.crop_size
     stride = Config.stride
     grid = crop_size / stride

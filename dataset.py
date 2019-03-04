@@ -6,16 +6,16 @@ import os
 import cv2
 from config import Config
 from utils import *
+import glob
 
 
 class Dataset(dataset.Dataset):
     def __init__(self, path_to_data, mode='train'):
         self._mode = mode
         self._path_to_data = path_to_data
-        f = open(os.path.join(self._path_to_data, '{}.txt' .format(self._mode)))
-        self._path_to_sequences = [os.path.join(self._path_to_data, '%.6d.json' %(int(line.split('\n')[0]))) for line in f.readlines()]
-        #self._path_to_sequences = list(sorted(glob.glob(os.path.join(self._path_to_data, '*.json'))))
-        del self._path_to_sequences[-2:]
+        self._path_to_sequences = glob.glob(os.path.join(path_to_data, mode, '*.json'))
+        # f = open(os.path.join(self._path_to_data, '{}.txt' .format(self._mode)))
+        # self._path_to_sequences = [os.path.join(self._path_to_data, '%.6d.json' %(int(line.split('\n')[0]))) for line in f.readlines()]
         self._num_sequences = len(self._path_to_sequences)
         self.crop_size = Config.crop_size
         self.stride = Config.stride
@@ -34,12 +34,12 @@ class Dataset(dataset.Dataset):
         with open(label_file_path) as f:
             labels = json.load(f)
         for label in labels['objects']:
-            if label['class'] == 'bottles_Bottle_s_Jack_Daniels_Object0011':
+            #if label['class'] == 'bottles_Bottle_s_Jack_Daniels_Object0011':
+            if label['class'] == 'Bottle_s_Jose_Cuervo_Bottle_s_Jose_Cuervo_Object0027':
                 vertex = label['projected_cuboid']
                 centroid = label['projected_cuboid_centroid']
                 vertex.append(centroid)
                 vertices.append(vertex)
-
         heatmaps, pafs = self.get_ground_truth(vertices)
         img = preprocess(img).float()
         heatmaps = heatmaps.transpose((2, 0, 1))
@@ -56,12 +56,14 @@ class Dataset(dataset.Dataset):
             for idx, point in enumerate(vertex):
                 point = tuple([int(i/self.ratio) for i in point])
                 center_point = tuple([int(i/self.ratio) for i in vertex[-1]])
+
                 gaussian_map = heatmaps[:, :, idx]
                 if idx < 8:
                     count = np.zeros((int(self.grid), int(self.grid)), dtype=np.uint32)
-                    centerA = np.array(point)
-                    centerB = np.array(center_point)
-                    pafs[:, :, idx*2:idx*2+2], count = generate_vecmap(centerA, centerB, pafs[:, :, idx*2:idx*2+2], count)
+                    if point[0] >= 0 and point[0] < Config.crop_size and point[1] >= 0 and point[1] < Config.crop_size:
+                        centerA = np.array(point)
+                        centerB = np.array(center_point)
+                        pafs[:, :, idx*2:idx*2+2], count = generate_vecmap(centerA, centerB, pafs[:, :, idx*2:idx*2+2], count)
                 heatmaps[:, :, idx] = generate_gaussianmap(point, gaussian_map)
 
         return heatmaps, pafs
@@ -71,7 +73,7 @@ class Dataset(dataset.Dataset):
 
 if __name__ == '__main__':
     def main():
-        path_to_data_dir = '/media/ssd_external/DR-V3'
+        path_to_data_dir = '/media/external/Bottle_dataset_split'
         dataset = Dataset(path_to_data_dir)
         print('len(dataset):', len(dataset))
         print(dataset[0])

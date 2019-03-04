@@ -12,9 +12,9 @@ import json
 model = get_model(trunk='vgg19')
 model = model.cuda()
 use_vgg(model, './model', 'vgg19')
-model.load_state_dict(torch.load('./logs-drv3-3/checkpoint.pth'))
+model.load_state_dict(torch.load('./logs/logs-dr-pr-jose-1/checkpoint-last.pth'))
 model.eval()
-path_to_data = '/media/ssd_external/DR-V3'
+path_to_data = '/media/ssd_external/DR-V4'
 # path_to_data = './data/JockDM'
 # path_to_data = './data/real'
 path_to_data = './data/JPEGImages'
@@ -35,6 +35,16 @@ for path in path_to_sequences:
     line = out[0]
     vertex = out[1]
     vertex = vertex.squeeze()
+    # if id > 130:
+    #     cv2.imshow('img', original_img)
+    #     v = (vertex.sum(dim=0).detach().cpu().numpy()*255.0).astype(np.uint8)
+    #     v = cv2.resize(v, (int(32*Config.stride*ratio), int(32*Config.stride*ratio)))
+    #     v = cv2.cvtColor(v, cv2.COLOR_GRAY2BGR)
+    #     v = cv2.applyColorMap(v, cv2.COLORMAP_JET)
+    #     v = cv2.addWeighted(v, 0.5, original_img, 0.5, 0)
+    #     cv2.imshow('v', v)
+    #     cv2.waitKey(0)
+    #     exit()
     line = line.squeeze()
     objects, peaks = find_objects(vertex, line)
     if len(objects) > 0:
@@ -53,10 +63,10 @@ for path in path_to_sequences:
                     p1 = tuple([int(p*Config.stride*ratio) for p in vertexes[p1]])
                     p2 = tuple([int(p*Config.stride*ratio) for p in vertexes[p2]])
                     original_img = cv2.line(original_img, p1, p2, color=(0, 0, 255), thickness=1)
-    print('save output/model2/img_{}.png' .format(id))
-    cv2.imwrite('output/model2/img_{}.png' .format(id), original_img)
+    # print('save output/drv4-2/img_{}.png' .format(id))
+    # cv2.imwrite('output/drv4-2/img_{}.png' .format(id), original_img)
     id += 1
-    #cv2.imshow('img', original_img)
-    #cv2.waitKey(1)
+    cv2.imshow('img', original_img)
+    cv2.waitKey(1)
 
 
