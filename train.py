@@ -10,20 +10,29 @@ import numpy as np
 from tensorboardX import SummaryWriter
 
 
-def _train(path_to_data_dir, path_to_logs_dir, batch_size, epochs, restore):
+def _train(class_name, path_to_data_dir, path_to_logs_dir, batch_size, epochs, restore):
+
+    # init tensorboard
     writer = SummaryWriter(path_to_logs_dir)
-    dataset = Dataset(path_to_data=path_to_data_dir)
-    dataloader = DataLoader(dataset, batch_size, shuffle=True, num_workers=0, drop_last=True)
-    val_dataset = Dataset(path_to_data=path_to_data_dir, mode='val')
+
+    # dataloader
+    train_dataset = Dataset(class_name=class_name, path_to_data=path_to_data_dir)
+    train_dataloader = DataLoader(train_dataset, batch_size, shuffle=True, num_workers=0, drop_last=True)
+    val_dataset = Dataset(path_to_data=path_to_data_dir, class_name=class_name, split='val')
     val_dataloader = DataLoader(val_dataset, batch_size, shuffle=False, num_workers=0, drop_last=True)
+
+    # load model
     model = get_model(trunk='vgg19')
     model = model.cuda()
     use_vgg(model, './model', 'vgg19')
+
+    # restore model
     if restore:
         model.load_state_dict(torch.load(restore))
 
     model.train()
 
+    # freeze low-level layer
     for i in range(20):
         for param in model.model0[i].parameters():
             param.requires_grad = False
@@ -34,7 +43,7 @@ def _train(path_to_data_dir, path_to_logs_dir, batch_size, epochs, restore):
     step = 1
     best_mse = 1.0
     while epoch != epochs:
-        for batch_index, (images, heatmaps_target, pafs_target) in enumerate(dataloader):
+        for batch_index, (images, heatmaps_target, pafs_target, _, _) in enumerate(train_dataloader):
             images = images.cuda()
             _, saved_for_loss = model(images)
             loss, heatmaps_losses, pafs_losses = _loss(saved_for_loss, heatmaps_target.cuda(), pafs_target.cuda())
@@ -56,14 +65,14 @@ def _train(path_to_data_dir, path_to_logs_dir, batch_size, epochs, restore):
                 writer.add_scalar('val/total_loss', total_loss, step)
                 if total_loss < best_mse:
                     print('Save checkpoint')
-                    torch.save(model.state_dict(), os.path.join(path_to_logs_dir, 'checkpoint-best.pth'))
+                    torch.save(model.state_dict(), os.path.join(path_to_logs_dir, '{}-checkpoint-best.pth'.format(class_name)))
                     best_mse = total_loss
                     print('Best MSE: {}' .format(total_loss))
                 model.train()
             step += 1
         epoch += 1
     print('Save checkpoint')
-    torch.save(model.state_dict(), os.path.join(path_to_logs_dir, 'checkpoint-last.pth'))
+    torch.save(model.state_dict(), os.path.join(path_to_logs_dir, '{}-checkpoint-last.pth'.format(class_name)))
 
 
 def _validate(model, val_dataloader):
@@ -108,11 +117,12 @@ if __name__ == '__main__':
     def main(args):
         path_to_data_dir = args.path_to_data_dir
         path_to_logs_dir = args.path_to_logs_dir
+        class_name = args.class_name
         os.makedirs(path_to_logs_dir, exist_ok=True)
         batch_size = args.batch_size
         epochs = args.epochs
         restore = args.restore_checkpoint
-        _train(path_to_data_dir, path_to_logs_dir, batch_size, epochs, restore)
+        _train(class_name, path_to_data_dir, path_to_logs_dir, batch_size, epochs, restore)
 
 
     parser = argparse.ArgumentParser()
@@ -120,6 +130,8 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--path_to_logs_dir', default='./logs/logs-dr-pr-jose-1', help='path to logs directory')
     parser.add_argument('-b', '--batch_size', default=32, type=int, help='batch size')
     parser.add_argument('-e', '--epochs', default=10, type=int, help='epochs')
+    parser.add_argument('-c', '--class_name', default='bottles_Bottle_s_Jack_Daniels_Object0011', type=str,
+                        choices=['bottles_Bottle_s_Jack_Daniels_Object0011', 'Bottle_s_Jose_Cuervo_Bottle_s_Jose_Cuervo_Object0027'], help='class name')
     parser.add_argument('-r', '--restore_checkpoint', default=None,
                      help='path to restore checkpoint file, e.g., ./logs/model-100.pth')
     main(parser.parse_args())
