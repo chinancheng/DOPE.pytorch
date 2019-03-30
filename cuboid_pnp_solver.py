@@ -7,6 +7,7 @@ from pyrr import Quaternion
 import cv2
 from cuboid import *
 
+
 class CuboidPNPSolver(object):
     """
     This class is used to find the 6-DoF pose of a cuboid given its projected vertices.
@@ -129,4 +130,5 @@ class CuboidPNPSolver(object):
             self.__dist_coeffs)
         
         output_points = np.squeeze(output_points)
+
         return output_points

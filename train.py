@@ -12,7 +12,7 @@ from tensorboardX import SummaryWriter
 
 def _train(class_name, path_to_data_dir, path_to_logs_dir, batch_size, epochs, restore):
 
-    # init tensorboard
+    # create tensorboard
     writer = SummaryWriter(path_to_logs_dir)
 
     # dataloader
@@ -42,6 +42,7 @@ def _train(class_name, path_to_data_dir, path_to_logs_dir, batch_size, epochs, r
     epoch = 0
     step = 1
     best_mse = 1.0
+
     while epoch != epochs:
         for batch_index, (images, heatmaps_target, pafs_target, _, _) in enumerate(train_dataloader):
             images = images.cuda()
@@ -114,24 +115,26 @@ def _loss(saved_for_loss, heatmaps_target, pafs_target):
 
 
 if __name__ == '__main__':
+
     def main(args):
         path_to_data_dir = args.path_to_data_dir
+        if not os.path.exists(path_to_data_dir):
+            raise FileNotFoundError(path_to_data_dir)
         path_to_logs_dir = args.path_to_logs_dir
+        if path_to_logs_dir:
+            os.makedirs(path_to_logs_dir, exist_ok=True)
         class_name = args.class_name
-        os.makedirs(path_to_logs_dir, exist_ok=True)
         batch_size = args.batch_size
         epochs = args.epochs
         restore = args.restore_checkpoint
         _train(class_name, path_to_data_dir, path_to_logs_dir, batch_size, epochs, restore)
 
-
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--path_to_data_dir', default='/media/external/Bottle_dataset_split', help='path to data directory')
-    parser.add_argument('-l', '--path_to_logs_dir', default='./logs/logs-dr-pr-jose-1', help='path to logs directory')
+    parser.add_argument('-d', '--path_to_data_dir', default='/media/ssd_external/Bottle_dataset_split', help='path to data directory')
+    parser.add_argument('-l', '--path_to_logs_dir', default='./logs', help='path to logs directory')
     parser.add_argument('-b', '--batch_size', default=32, type=int, help='batch size')
     parser.add_argument('-e', '--epochs', default=10, type=int, help='epochs')
-    parser.add_argument('-c', '--class_name', default='bottles_Bottle_s_Jack_Daniels_Object0011', type=str,
-                        choices=['bottles_Bottle_s_Jack_Daniels_Object0011', 'Bottle_s_Jose_Cuervo_Bottle_s_Jose_Cuervo_Object0027'], help='class name')
+    parser.add_argument('-class', '--class_name', dest="class_name", choices=["Jack_Daniels", "Jose_Cuervo"], default="Jack_Daniels", type=str, help='the class name of object')
     parser.add_argument('-r', '--restore_checkpoint', default=None,
                      help='path to restore checkpoint file, e.g., ./logs/model-100.pth')
     main(parser.parse_args())

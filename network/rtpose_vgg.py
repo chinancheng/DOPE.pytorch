@@ -1,7 +1,7 @@
 """CPM Pytorch Implementation"""
 
 from collections import OrderedDict
-
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -277,4 +277,3 @@ def use_vgg(model, model_path, trunk):
     state = model.state_dict()
     state.update(weights_load)
     model.load_state_dict(state)
-    print('load imagenet pretrained model: {}'.format(model_path))

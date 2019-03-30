@@ -34,7 +34,7 @@ class Dataset(dataset.Dataset):
         with open(label_file_path) as f:
             labels = json.load(f)
         for label in labels['objects']:
-            if label['class'] == self.class_name:
+            if label['class'].find(self.class_name) != -1:
                 vertex = label['projected_cuboid']
                 centroid = label['projected_cuboid_centroid']
                 location = label['location']
@@ -47,6 +47,8 @@ class Dataset(dataset.Dataset):
         heatmaps = torch.tensor(heatmaps, dtype=torch.float)
         pafs = pafs.transpose((2, 0, 1))
         pafs = torch.tensor(pafs, dtype=torch.float)
+        if len(locations) != 0:
+            locations = torch.tensor(locations, dtype=torch.float)
 
         return img, heatmaps, pafs, locations, self.ratio
 
@@ -68,6 +70,7 @@ class Dataset(dataset.Dataset):
                 heatmaps[:, :, idx] = generate_gaussianmap(point, gaussian_map)
 
         return heatmaps, pafs
+
 
 if __name__ == '__main__':
     def main():

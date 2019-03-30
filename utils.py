@@ -2,6 +2,7 @@ import numpy as np
 from config import Config
 from torchvision import transforms
 from scipy.ndimage.filters import gaussian_filter
+from pyrr import Quaternion
 import cv2
 
 
@@ -66,10 +67,8 @@ def generate_vecmap(centerA, centerB, accumulate_vec_map, count):
     limb_vec = centerB - centerA
     norm = np.linalg.norm(limb_vec)
     if (norm == 0.0):
-    #    # print 'limb is too short, ignore it...'
         return accumulate_vec_map, count
     limb_vec_unit = limb_vec / norm
-    # print( 'limb unit vector: {}'.format(limb_vec_unit))
 
     # To make sure not beyond the border of this two points
     min_x = max(int(round(min(centerA[0], centerB[0]) - thre)), 0)
@@ -272,3 +271,13 @@ def find_objects(vertex2, aff, numvertex=8):
                     objects[i_best][2][i_lists] = (best_angle, best_dist)
 
     return objects, all_peaks
+
+
+def convert_rvec_to_quaternion(rvec):
+    '''Convert rvec (which is log quaternion) to quaternion'''
+    theta = np.sqrt(rvec[0] * rvec[0] + rvec[1] * rvec[1] + rvec[2] * rvec[2])  # in radians
+    raxis = [rvec[0] / theta, rvec[1] / theta, rvec[2] / theta]
+
+    # pyrr's Quaternion (order is XYZW), https://pyrr.readthedocs.io/en/latest/oo_api_quaternion.html
+
+    return Quaternion.from_axis_rotation(raxis, theta)

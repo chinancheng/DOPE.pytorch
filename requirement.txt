@@ -1,0 +1,9 @@
+opencv-python
+torch==0.4.1
+torchvision==0.2.1
+numpy
+pyrr
+tensorboardX
+argparse
+scipy
+tqdm
