@@ -120,8 +120,7 @@ def main(args):
                             rotate_quaternion = Quaternion.from_axis_rotation(location, rotate_angle)
                             quaternion = rotate_quaternion.cross(quaternion)
                         vertexes = [tuple(p) for p in projected_points]
-                        if args.plot:
-                            plot(original_img, vertexes)
+                        plot(original_img, vertexes)
             if args.save:
                 if not os.path.exists(output_dir):
                     os.makedirs(output_dir, exist_ok=True)
@@ -164,8 +163,8 @@ if __name__ == "__main__":
                         help='the path of model checkpoint')
     parser.add_argument('-o', '--output_dir', dest="output_dir", default=None, type=str,
                         help='the path of output folder')
-    parser.add_argument('-s', '--save', dest="save", default=False, type=bool, help='save prediction figure')
-    parser.add_argument('-p', '--plot', dest="plot", default=True, type=bool, help='plot image')
+    parser.add_argument('-s', '--save', dest="save", action='store_true')
+    parser.add_argument('-p', '--plot', dest="plot", action='store_true')
     main(parser.parse_args())
 
 
