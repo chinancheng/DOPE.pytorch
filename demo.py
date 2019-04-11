@@ -22,6 +22,8 @@ def main(args):
     if not os.path.exists(path_to_checkpoint):
         raise FileNotFoundError(path_to_data_dir)
     class_name = args.class_name
+    fps = args.fps
+    img_prefix = args.img_prefix
 
     # load pre-trained model
     model = get_model(trunk='vgg19')
@@ -54,12 +56,14 @@ def main(args):
     matrix_camera = np.zeros((3, 3))
     matrix_camera[0, 0] = intrinsic_settings['fx']
     matrix_camera[1, 1] = intrinsic_settings['fy']
-    matrix_camera[0, 2] = intrinsic_settings['cx']
-    matrix_camera[1, 2] = intrinsic_settings['cy']
+    matrix_camera[0, 2] = max(intrinsic_settings['cx'], intrinsic_settings['cy'])
+    matrix_camera[1, 2] = max(intrinsic_settings['cx'], intrinsic_settings['cy'])
     matrix_camera[2, 2] = 1
-    dist_coeffs = np.zeros((4, 1))
-
-    path_to_sequences = sorted(glob.glob(os.path.join(path_to_data_dir, '*.jpg')))
+    try:
+        dist_coeffs = np.array(json.load(open(path_to_camera_seetings))['camera_settings'][0]["distortion_coefficients"])
+    except KeyError:
+        dist_coeffs = np.zeros((4, 1))
+    path_to_sequences = sorted(glob.glob(os.path.join(path_to_data_dir, '*.{}'.format(img_prefix))))
 
     for img_path in path_to_sequences:
         original_img = crop(cv2.imread(img_path))
@@ -98,7 +102,7 @@ def main(args):
                 obj_2d_points = np.array(obj_2d_points, dtype=float)
                 obj_3d_points = np.array(obj_3d_points, dtype=float)
                 valid_point_count = len(obj_2d_points)
-                if valid_point_count >= 6:
+                if valid_point_count >= 5:
                     ret, rvec, tvec = cv2.solvePnP(obj_3d_points, obj_2d_points, matrix_camera, dist_coeffs, flags=cv2.SOLVEPNP_ITERATIVE)
                     if ret:
                         location = list(x[0] for x in tvec)
@@ -128,8 +132,9 @@ def main(args):
                 print('=> Save {}' .format(output_path))
                 cv2.imwrite(output_path, original_img)
             if args.plot:
+                original_img = cv2.resize(original_img, (600, 600))
                 cv2.imshow('prediction', original_img)
-                cv2.waitKey(1)
+                cv2.waitKey(int(1000/fps))
 
 
 def plot(img, _vertexes, color=(255, 255, 0), scale=1):
@@ -163,8 +168,12 @@ if __name__ == "__main__":
                         help='the path of model checkpoint')
     parser.add_argument('-o', '--output_dir', dest="output_dir", default=None, type=str,
                         help='the path of output folder')
+    parser.add_argument('-f', '--fps', dest="fps", default=5, type=int,
+                        help='FPS of input sequence')
     parser.add_argument('-s', '--save', dest="save", action='store_true')
     parser.add_argument('-p', '--plot', dest="plot", action='store_true')
+    parser.add_argument('-prefix', '--img_prefix', dest="img_prefix", default="jpg", type=str,
+                        help='the image prefix')
     main(parser.parse_args())
 
 

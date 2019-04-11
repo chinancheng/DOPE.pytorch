@@ -13,7 +13,7 @@ from pyrr import Quaternion
 from tqdm import tqdm
 
 
-def _eval(class_name, path_to_data_dir, path_to_checkpoint):
+def _eval(class_name, path_to_data_dir, path_to_checkpoint, img_prefix):
 
     # load pre-trained model
     model = get_model(trunk='vgg19')
@@ -46,19 +46,23 @@ def _eval(class_name, path_to_data_dir, path_to_checkpoint):
     matrix_camera = np.zeros((3, 3))
     matrix_camera[0,0] = intrinsic_settings['fx']
     matrix_camera[1,1] = intrinsic_settings['fy']
-    matrix_camera[0,2] = intrinsic_settings['cx']
-    matrix_camera[1,2] = intrinsic_settings['cy']
+    matrix_camera[0,2] = max(intrinsic_settings['cx'], intrinsic_settings['cy'])
+    matrix_camera[1,2] = max(intrinsic_settings['cx'], intrinsic_settings['cy'])
     matrix_camera[2,2] = 1
-    dist_coeffs = np.zeros((4, 1))
+
+    try:
+        dist_coeffs = np.array(json.load(open(path_to_camera_seetings))['camera_settings'][0]["distortion_coefficients"])
+    except KeyError:
+        dist_coeffs = np.zeros((4, 1))
 
     # dataloader
-    val_dataset = Dataset(path_to_data=path_to_data_dir, class_name=class_name, split='val')
+    val_dataset = Dataset(path_to_data=path_to_data_dir, class_name=class_name, split='val', img_prefix=img_prefix)
     val_dataloader = DataLoader(val_dataset, batch_size=1, shuffle=False, num_workers=0, drop_last=False)
 
     correct = 0
     wrong = 0
     # set threshold (cm)
-    threshold = 2.0
+    threshold = 3.0
 
     for batch_index, (images, _, _, location_targets, ratio) in tqdm(enumerate(val_dataloader)):
         images = images.cuda()
@@ -130,7 +134,6 @@ def _eval(class_name, path_to_data_dir, path_to_checkpoint):
                 else:
                     correct += 1
 
-
     print('Object: {} Accuracy: {}%'.format(class_name, correct/(wrong+correct)*100.0))
 
 
@@ -144,11 +147,14 @@ if __name__ == '__main__':
         if not os.path.exists(path_to_checkpoint):
             raise FileNotFoundError(path_to_data_dir)
         class_name = args.class_name
-        _eval(class_name, path_to_data_dir, path_to_checkpoint)
+        img_prefix = args.img_prefix
+        _eval(class_name, path_to_data_dir, path_to_checkpoint, img_prefix)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--path_to_data_dir', default='/media/ssd_external/Bottle_dataset_split', help='path to data directory')
     parser.add_argument('-class', '--class_name', dest="class_name", choices=["Jack_Daniels", "Jose_Cuervo"], default="Jack_Daniels", type=str, help='the class name of object')
     parser.add_argument('-c', '--checkpoint', dest="checkpoint", required=True, type=str,
                         help='the path of model checkpoint')
+    parser.add_argument('-prefix', '--img_prefix', dest="img_prefix", default="png", type=str,
+                        help='the image prefix')
     main(parser.parse_args())

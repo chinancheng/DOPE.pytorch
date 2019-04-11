@@ -10,8 +10,9 @@ import glob
 
 
 class Dataset(dataset.Dataset):
-    def __init__(self, path_to_data, class_name, split='train'):
+    def __init__(self, path_to_data, class_name, split='train', img_prefix='png'):
         self.split = split
+        self.img_prefix = img_prefix
         self._path_to_data = path_to_data
         self._path_to_sequences = glob.glob(os.path.join(path_to_data, split, '*.json'))
         self.class_name = class_name
@@ -25,10 +26,11 @@ class Dataset(dataset.Dataset):
 
     def __getitem__(self, index):
         label_file_path = self._path_to_sequences[index]
-        img_file_path = label_file_path.replace('json', 'png')
+        img_file_path = label_file_path.replace('json', self.img_prefix)
         vertices = []
         locations = []
         img = cv2.imread(img_file_path)
+        img = crop(img)
         self.ratio = img.shape[0]/self.crop_size
         img = cv2.resize(img, (self.crop_size, self.crop_size))
         with open(label_file_path) as f:
