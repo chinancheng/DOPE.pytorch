@@ -26,7 +26,6 @@ $ conda activate DOPE
    
    
 * Data
-[[Download](https://drive.google.com/file/d/1o-Z_ILr8-fcT90bV-IMp5mXHQqEN0u3Y/view?usp=sharing)]
 ```
 DOPE.pytorch
   - data
